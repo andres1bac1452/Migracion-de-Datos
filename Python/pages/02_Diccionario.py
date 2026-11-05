@@ -11,8 +11,8 @@ from difflib import SequenceMatcher
 # =====================================================
 
 SERVER = "vm-prb-dpj-eastus-001.database.windows.net"
-USERNAME = "bquirozb"
-PASSWORD = "Banco2026*+"
+USERNAME = "andresdiaz"
+PASSWORD = "Agrario2026*+"
 
 st.set_page_config(
     page_title="Catalogo Modelo DPJ",
@@ -220,29 +220,41 @@ def obtener_relaciones(base, tabla):
 # =====================================================
 
 @st.cache_data
-def buscar_columnas(base, texto):
+def buscar_columnas_global(texto):
 
-    conn = conectar(base)
+    bases = obtener_bases()
 
-    query = f"""
-    SELECT
-        TABLE_NAME,
-        COLUMN_NAME,
-        DATA_TYPE,
-        CHARACTER_MAXIMUM_LENGTH,
-        NUMERIC_PRECISION,
-        NUMERIC_SCALE,
-        IS_NULLABLE
-    FROM INFORMATION_SCHEMA.COLUMNS
-    WHERE COLUMN_NAME LIKE '%{texto}%'
-    ORDER BY TABLE_NAME
-    """
+    resultado = []
 
-    df = pd.read_sql(query, conn)
+    for db in bases["name"]:
 
-    conn.close()
+        try:
 
-    return df
+            conn = conectar(db)
+
+            query = f"""
+            SELECT
+                '{db}' AS BASE_DATOS,
+                TABLE_NAME,
+                COLUMN_NAME,
+                DATA_TYPE
+            FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE COLUMN_NAME LIKE '%{texto}%'
+            """
+
+            df = pd.read_sql(query, conn)
+
+            resultado.append(df)
+
+            conn.close()
+
+        except:
+            pass
+
+    if resultado:
+        return pd.concat(resultado, ignore_index=True)
+
+    return pd.DataFrame()
 
 # =====================================================
 # CONTEO REGISTROS
@@ -2911,37 +2923,32 @@ buscar_columna = st.sidebar.text_input(
 
 if buscar_columna:
 
-    resultado_columnas = buscar_columnas(
-        base,
+    resultado_columnas = buscar_columnas_global(
         buscar_columna
     )
 
-    st.subheader(
-        f"Resultado de búsqueda: {buscar_columna}"
+    st.write(resultado_columnas.shape)
+
+    gb = GridOptionsBuilder.from_dataframe(
+        resultado_columnas
     )
 
-    st.dataframe(
+    gb.configure_default_column(
+        filter=True,
+        sortable=True,
+        resizable=True
+    )
+
+    AgGrid(
         resultado_columnas,
-        use_container_width=True
+        gridOptions=gb.build(),
+        height=500,
+        fit_columns_on_grid_load=True
     )
-
     # =====================================================
     # DESCARGAR EXCEL
     # =====================================================
 
-    archivo_excel = generar_excel_tabla(
-        columnas,
-        pk,
-        fk,
-        relaciones
-    )
-
-    st.download_button(
-        label="📄 Descargar Diccionario",
-        data=archivo_excel,
-        file_name=f"{tabla}.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    )
 
 # =====================================================
 # INFORMACION FINAL
@@ -2963,53 +2970,27 @@ Tabla seleccionada:
 # RESULTADO BUSQUEDA COLUMNAS
 # =====================================================
 
-if buscar_columna:
-
-    if base == "":
-        st.warning(
-            "Seleccione una base de datos para buscar columnas."
-        )
-
-    else:
-
-        resultado_columnas = buscar_columnas(
-            base,
-            buscar_columna
-        )
-
-        st.subheader(
-            f"Resultado de búsqueda: {buscar_columna}"
-        )
-
-        st.dataframe(
-            resultado_columnas,
-            use_container_width=True
-        )
-
         # ==========================================
         # DESCARGAR DICCIONARIO
         # ==========================================
 
-        if (
-            "columnas" in locals()
-            and "pk" in locals()
-            and "fk" in locals()
-            and "relaciones" in locals()
-        ):
+    if (
+        base != ""
+        and tabla != ""
+    ):
+        archivo_excel = generar_excel_tabla(
+            columnas,
+            pk,
+            fk,
+            relaciones
+        )
 
-            archivo_excel = generar_excel_tabla(
-                columnas,
-                pk,
-                fk,
-                relaciones
-            )
-
-            st.download_button(
-                label="📄 Descargar Diccionario",
-                data=archivo_excel,
-                file_name=f"{tabla}.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            )
+        st.download_button(
+            label="📄 Descargar Diccionario",
+            data=archivo_excel,
+            file_name=f"{tabla}.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
 # =====================================================
 # DESCARGAR INVENTARIO COMPLETO
 # =====================================================
