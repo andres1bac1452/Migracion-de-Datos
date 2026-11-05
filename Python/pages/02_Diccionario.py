@@ -2509,24 +2509,23 @@ if buscar_tabla:
 # -------------------------------------
 
         if "matriz_validacion" not in st.session_state:
-         st.session_state["matriz_validacion"] = []
+            st.session_state["matriz_validacion"] = []
     else:
-         st.warning(
-         "No se encontraron tablas"
-         )         
+            st.warning(
+            "No se encontraron tablas"
+            )         
 
 # -------------------------------------
 # CABECERA
 # -------------------------------------
 
-cab1, cab2, cab3, cab4 = st.columns(
-    [2, 5, 1, 2]
+cab1, cab2, cab3 = st.columns(
+    [1, 1, 1]
 )
 
 cab1.markdown("### 🛢️ Base")
 cab2.markdown("### 🗄️ Tabla")
 cab3.markdown("### 🎯 Acción")
-cab4.markdown("### ✅ Validación")
 
 st.divider()
 
@@ -2536,8 +2535,8 @@ st.divider()
 
 for i, fila in resultado_tabla.iterrows():
 
-    col1, col2, col3, col4 = st.columns(
-        [2, 5, 1, 2]
+    col1, col2, col3 = st.columns(
+        [1, 1, 1]
     )
 
     col1.markdown(
@@ -2641,271 +2640,8 @@ for i, fila in resultado_tabla.iterrows():
             st.session_state["nombre_tabla_abierta"] = fila["TABLE_NAME"]
 
             st.rerun()
-
-    # ----------------------
-    # BOTON ORIGEN
-    # ----------------------
-    val1, val2 = col4.columns(2)
-    if val1.button(
-        "Origen",
-        key=f"origen_{i}"
-    ):
-
-        nuevo_origen = {
-            "tipo": "ORIGEN",
-            "base": fila["BASE_DATOS"],
-            "tabla": fila["TABLE_NAME"]
-            }
-        
-        proyecciones = [
-            registro
-            for registro in st.session_state["matriz_validacion"]
-            if registro["tipo"] != "ORIGEN"
-        ]
-        
-        st.session_state["matriz_validacion"] = [
-            nuevo_origen,
-            *proyecciones
-        ]
-        
-        st.rerun()
-        
-# ----------------------
-# BOTON PROYECCION
-# ----------------------
-
-    if val2.button(
-    "Proyección",
-    key=f"proyeccion_{i}"
-    ):
-
-        existe = any(
-        x["base"] == fila["BASE_DATOS"]
-        and x["tabla"] == fila["TABLE_NAME"]
-        for x in st.session_state["matriz_validacion"]
-        )
-
-        if not existe:
-
-            st.session_state["matriz_validacion"].append({
-            "tipo": "PROYECCION",
-            "base": fila["BASE_DATOS"],
-            "tabla": fila["TABLE_NAME"]
-            })
 st.divider()
 
-st.subheader(
-    "🎯 Configuración de Validación"
-)
-
-cab1, cab2, cab3, cab4 = st.columns(
-    [2, 4, 5, 1]
-)
-
-cab1.markdown("**Tipo**")
-cab2.markdown("**Base**")
-cab3.markdown("**Tabla**")
-cab4.markdown("**Acción**")
-
-st.divider()
-
-# FILAS
-
-for idx, registro in enumerate(
-    st.session_state["matriz_validacion"]
-):
-
-    col1, col2, col3, col4 = st.columns(
-        [2, 4, 5, 1]
-    )
-
-    col1.write(registro["tipo"])
-    col2.write(registro["base"])
-    col3.write(registro["tabla"])
-    
-    if col4.button(
-        "🗑️",
-        key=f"eliminar_{idx}"
-    ):
-
-        st.session_state["matriz_validacion"].pop(
-            idx
-        )
-
-        st.rerun()
-if st.button("🚀 Ejecutar Validación"):
-
-    with st.spinner(
-        "🔍 Analizando proyecciones y generando reporte..."
-    ):
-
-        resultados = ejecutar_validacion_matriz(
-            st.session_state["matriz_validacion"]
-        )
-
-        archivo_excel = generar_reporte_validacion(
-            resultados
-        )
-
-        st.session_state[
-            "resultado_validacion"
-        ] = resultados
-
-        st.session_state[
-            "archivo_validacion"
-        ] = archivo_excel
-
-    st.success(
-        "✅ Validación finalizada correctamente"
-    )
-if "resultado_validacion" in st.session_state:
-
-    resumen = []
-
-    for resultado in st.session_state[
-        "resultado_validacion"
-    ]:
-
-        if "error" in resultado:
-
-            resumen.append({
-                "BASE":
-                    resultado["base_destino"],
-
-                "TABLA":
-                    resultado["tabla_destino"],
-
-                "ESTADO":
-                    "ERROR",
-
-                "DETALLE":
-                    resultado["error"]
-            })
-
-        else:
-
-            resumen.append({
-                "BASE":
-                    resultado["base_destino"],
-
-                "TABLA":
-                    resultado["tabla_destino"],
-
-                "COBERTURA":
-                    resultado["cobertura"],
-
-                "FALTANTES":
-                    resultado["faltantes"],
-
-                "SOBRANTES":
-                    resultado["sobrantes"],
-
-                "DIFERENCIAS":
-                    resultado["diferencias"]
-            })
-
-    st.dataframe(
-        pd.DataFrame(resumen),
-        use_container_width=True
-    )
-    
-    st.markdown("---")
-    st.subheader("🔎 Detalles de Validación")
-
-    for resultado in st.session_state["resultado_validacion"]:
-
-        if "error" in resultado:
-            continue
-
-        with st.expander(
-            f"{resultado['base_destino']} - {resultado['tabla_destino']}"
-        ):
-
-            tab1, tab2, tab3 = st.tabs(
-                [
-                    "Faltantes",
-                    "Sobrantes",
-                    "Diferencias"
-                ]
-            )
-
-            with tab1:
-
-                st.metric(
-                    "Total Faltantes",
-                    resultado["faltantes"]
-                )
-
-                if len(resultado["detalle_faltantes"]) > 0:
-
-                    st.dataframe(
-                        pd.DataFrame({
-                            "PK_FALTANTE":
-                                resultado["detalle_faltantes"]
-                        }),
-                        use_container_width=True
-                    )
-
-                else:
-
-                    st.success(
-                        "No existen faltantes"
-                    )
-
-            with tab2:
-
-                st.metric(
-                    "Total Sobrantes",
-                    resultado["sobrantes"]
-                )
-
-                if len(resultado["detalle_sobrantes"]) > 0:
-
-                    st.dataframe(
-                        pd.DataFrame({
-                            "PK_SOBRANTE":
-                                resultado["detalle_sobrantes"]
-                        }),
-                        use_container_width=True
-                    )
-
-                else:
-
-                    st.success(
-                        "No existen sobrantes"
-                    )
-
-            with tab3:
-
-                st.metric(
-                    "Total Diferencias",
-                    resultado["diferencias"]
-                )
-
-                if len(resultado["detalle_diferencias"]) > 0:
-
-                    st.dataframe(
-                        pd.DataFrame(
-                            resultado["detalle_diferencias"]
-                        ),
-                        use_container_width=True
-                    )
-
-                else:
-
-                    st.success(
-                        "No existen diferencias"
-                    )
-if "archivo_validacion" in st.session_state:
-
-    st.download_button(
-        label="📊 Descargar Reporte de Validación",
-        data=st.session_state[
-            "archivo_validacion"
-        ],
-        file_name="Reporte_Validacion_Proyecciones.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    )
 # =====================================================
 # BUSQUEDA COLUMNAS
 # =====================================================

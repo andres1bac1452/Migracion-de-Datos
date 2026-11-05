@@ -24,8 +24,7 @@ st.markdown(
 st.markdown(
     """
     <p style='text-align:center;font-size:20px;color:gray;'>
-        Explorador de Metadatos • Migración AS400 → Azure SQL
-    </p>
+        Explorador de base de datos PWT entorno de pruebas </p>
     """,
     unsafe_allow_html=True
 )
@@ -41,23 +40,23 @@ st.subheader("🚀 Accesos rápidos")
 
 c1, c2, c3 = st.columns(3)
 
+# with c1:
+#     st.page_link(
+#         "pages/01_Dashboard.py",
+#         label="📊 Dashboard"
+#     )
+
 with c1:
     st.page_link(
-        "pages/01_Dashboard.py",
-        label="📊 Dashboard"
-    )
-
-with c2:
-    st.page_link(
         "pages/02_Diccionario.py",
-        label="📖 Diccionario"
+        label="📖 Diccionario base de datos"
     )
 
-with c3:
-    st.page_link(
-        "pages/06_Busqueda_Global.py",
-        label="🔍 Búsqueda Global"
-    )
+# with c3:
+#     st.page_link(
+#         "pages/06_Busqueda_Global.py",
+#         label="🔍 Búsqueda Global"
+#     )
 
 st.markdown("---")
 
